@@ -3,40 +3,46 @@ import rpidisplay
 import QtCharts
 
 Item {
-    required property InfluxDBConnection influx_ruuvi
-    opacity: 0.0
     id: root
+    required property InfluxDBConnection influx_ruuvi
+    required property list<TemperatureSeries> series
     property int sinceDays: 0
+    opacity: 0.0
+
+    function createInitialSeries(series) {
+        chartView.createSeries(ChartView.SeriesTypeLine, series.name, timeAxis, yAxis);
+    }
+
+    Component.onCompleted: {
+        for (var i = 0; i < series.length; i++) {
+            createInitialSeries(series[i])
+        }
+    }
 
     function refresh(sinceDays) {
-        lineSeriesOutside.clear()
-        lineSeriesInside.clear()
+        var maxValue = 0;
+        var minValue = 0
+        for (var i = 0; i < series.length; i++) {
+            var updatedSeries = chartView.series(i)
+            updatedSeries.clear()
+            var mac = series[i].mac
 
-        // Outside temperature
-        var queryText = "select mean(temperature) as power from ruuvi_measurements where mac='CA:39:20:9F:92:AC' and time < now()-" + sinceDays*24 + "h and time >= now()-" + (sinceDays+1)*24 + "h group by time(10m) order by time asc"
-        var queryResult = influx_ruuvi.doQuery(queryText)
-        var maxOutsideValue = Math.max(...queryResult.map(point => point.data))
-        var minOutsideValue = Math.min(...queryResult.map(point => point.data))
+            var queryText = "select mean(temperature) as power from ruuvi_measurements where mac='" + mac + "' and time < now()-" + sinceDays*24 + "h and time >= now()-" + (sinceDays+1)*24 + "h group by time(10m) order by time asc"
+            var queryResult = influx_ruuvi.doQuery(queryText)
+            maxValue = Math.max(...queryResult.map(point => point.data), maxValue)
+            minValue = Math.min(...queryResult.map(point => point.data), minValue)
 
-        queryResult.forEach((point) => {
-                                lineSeriesOutside.append(point.timestamp.getTime(), point.data)
-                            });
+            queryResult.forEach((point) => {
+                                    updatedSeries.append(point.timestamp.getTime(), point.data)
+                                });
 
-        // Inside temperature
-        queryText = "select mean(temperature) as power from ruuvi_measurements where mac='EF:93:E1:2B:3E:DB' and time < now()-" + sinceDays*24 + "h and time >= now()-" + (sinceDays+1)*24 + "h group by time(10m) order by time asc"
-        queryResult = influx_ruuvi.doQuery(queryText)
-        var maxInsideValue = Math.max(...queryResult.map(point => point.data))
-        var minInsideValue = Math.min(...queryResult.map(point => point.data))
-
-        queryResult.forEach((point) => {
-                                lineSeriesInside.append(point.timestamp.getTime(), point.data)
-                            });
-
-        timeAxis.max = queryResult[queryResult.length - 1].timestamp
-        timeAxis.min = queryResult[0].timestamp
-        timeAxis.tickCount = 24
-        var maxValue = Math.max(maxOutsideValue, maxInsideValue)
-        var minValue = Math.min(maxOutsideValue, maxInsideValue, 0)
+            // Set time axis based on first query
+            if (i === 0) {
+                timeAxis.max = queryResult[queryResult.length - 1].timestamp
+                timeAxis.min = queryResult[0].timestamp
+                timeAxis.tickCount = 24
+            }
+        }
         yAxis.max = (maxValue + 5) - (maxValue + 5) % 5
         yAxis.min = minValue
 
@@ -44,6 +50,7 @@ Item {
         titleDate.setDate(titleDate.getDate() - sinceDays)
         chartView.title = "Lämpötila " + titleDate.toLocaleDateString("fi_FI")
         chartView.focus = true
+        console.log("series count: " + chartView.series(0).count);
     }
 
     Rectangle {
@@ -67,20 +74,6 @@ Item {
             antialiasing: true
             theme: ChartView.ChartThemeDark
             legend.visible: true
-
-            LineSeries {
-                id: lineSeriesOutside
-                axisX: timeAxis
-                axisY: yAxis
-                name: "Ulkolämpötila"
-            }
-
-            LineSeries {
-                id: lineSeriesInside
-                axisX: timeAxis
-                axisY: yAxis
-                name: "Sisälämpötila"
-            }
 
             ValuesAxis {
                 id: yAxis

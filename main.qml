@@ -35,6 +35,10 @@ Window {
     TemperatureChartView {
         id: temperatureGraphView
         influx_ruuvi: influx_ruuvi
+        series: [
+            TemperatureSeries { name: "Ulkolämpötila"; mac: "CA:39:20:9F:92:AC" },
+            TemperatureSeries { name: "Sisälämpötila"; mac: "EF:93:E1:2B:3E:DB" }
+        ]
     }
 
     Component.onCompleted: {

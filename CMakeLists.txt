@@ -22,6 +22,7 @@ qt_add_qml_module(apprpi-display
     VERSION 1.0
     QML_FILES main.qml PowerChartView.qml WaterChartView.qml ConsumptionGraphView.qml TemperatureChartView.qml TemperatureSeries.qml
     SOURCES     influxdbdata.h influxdbdata.cpp influxdbconnection.h influxdbconnection.cpp
+    RESOURCES img/background.jpg
 )
 
 set_target_properties(apprpi-display PROPERTIES

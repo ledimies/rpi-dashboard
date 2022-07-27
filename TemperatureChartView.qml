@@ -38,8 +38,10 @@ Item {
 
             // Set time axis based on first query
             if (i === 0) {
-                timeAxis.max = queryResult[queryResult.length - 1].timestamp
-                timeAxis.min = queryResult[0].timestamp
+                if (queryResult.length > 0) {
+                    timeAxis.max = queryResult[queryResult.length - 1].timestamp
+                    timeAxis.min = queryResult[0].timestamp
+                }
                 timeAxis.tickCount = 24
             }
         }

@@ -84,7 +84,7 @@ Window {
 
     function refreshInsideTemperature() {
         var res = influx_ruuvi.doQuery("select temperature as power from ruuvi_measurements where mac='EF:93:E1:2B:3E:DB' order by time desc limit 1")
-        fpInsideTemperature.text = "Sisälämpötila" + res[0].data.toFixed(1) + "℃"
+        fpInsideTemperature.text = "Sisälämpötila: " + res[0].data.toFixed(1) + "℃"
     }
 
     function refreshDateAndTime() {

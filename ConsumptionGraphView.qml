@@ -70,11 +70,49 @@ Rectangle {
         }
 
         MouseArea {
-            anchors.fill: parent
+            id: mouseArealeft
+            width: 266
+            height: 480
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.topMargin: 0
+            anchors.leftMargin: 0
+
+            onClicked: {
+                sinceDays = sinceDays + 1
+                refresh(sinceDays)
+            }
+        }
+
+        MouseArea {
+            id: mouseAreaMiddle
+            width: 268
+            height: 480
+            anchors.left: mouseArealeft.right
+            anchors.top: mouseArealeft.top
+            anchors.topMargin: 0
+            anchors.leftMargin: 0
 
             onClicked: {
                 root.opacity = 0.0
                 frontPage.visible = true
+            }
+        }
+
+        MouseArea {
+            id: mouseAreaRight
+            width: 266
+            height: 480
+            anchors.left: mouseAreaMiddle.right
+            anchors.top: mouseAreaMiddle.top
+            anchors.topMargin: 0
+            anchors.leftMargin: 0
+
+            onClicked: {
+                if (sinceDays > 0) {
+                    sinceDays = sinceDays - 1
+                }
+                refresh(sinceDays)
             }
         }
 

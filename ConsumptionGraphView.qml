@@ -72,10 +72,6 @@ Rectangle {
         MouseArea {
             anchors.fill: parent
 
-            onDoubleClicked: {
-                refresh()
-            }
-
             onClicked: {
                 root.opacity = 0.0
                 frontPage.visible = true

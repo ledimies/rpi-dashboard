@@ -20,7 +20,7 @@ qt_add_executable(apprpi-display
 qt_add_qml_module(apprpi-display
     URI rpidisplay
     VERSION 1.0
-    QML_FILES main.qml PowerChartView.qml WaterChartView.qml ConsumptionGraphView.qml
+    QML_FILES main.qml PowerChartView.qml WaterChartView.qml ConsumptionGraphView.qml TemperatureChartView.qml
     SOURCES     influxdbdata.h influxdbdata.cpp influxdbconnection.h influxdbconnection.cpp
 )
 

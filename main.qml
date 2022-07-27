@@ -32,6 +32,11 @@ Window {
         influx_water: influx_water
     }
 
+    TemperatureChartView {
+        id: temperatureGraphView
+        influx_ruuvi: influx_ruuvi
+    }
+
     Component.onCompleted: {
         influx_electricity.connect(powerURL)
         influx_water.connect(waterURL)
@@ -52,17 +57,29 @@ Window {
     function refreshAll() {
         refreshElectricity()
         refreshWater()
+        refreshOutsideTemperature()
+        refreshInsideTemperature()
     }
 
     function refreshElectricity() {
         var res = influx_electricity.doQuery("select power from consumption order by time desc limit 1")
-        fp_power.text = res[0].data.toFixed(0)
+        fpPower.text = res[0].data.toFixed(0)
     }
 
     function refreshWater() {
-        // Litraa / viimeisimmät 10 minuuttia
+        // Liters, last 10 minutes
         var res = influx_water.doQuery("select sum(power) as power from (select difference(first(amount_dl))/10 as power from consumption where time < now() and time >= now()-10m group by time(1m) order by time asc)")
-        fp_water.text = res[0].data.toFixed(1)
+        fpWater.text = res[0].data.toFixed(1)
+    }
+
+    function refreshOutsideTemperature() {
+        var res = influx_ruuvi.doQuery("select temperature as power from ruuvi_measurements where mac='CA:39:20:9F:92:AC' order by time desc limit 1")
+        fpOutsideTemperature.text = res[0].data.toFixed(1)
+    }
+
+    function refreshInsideTemperature() {
+        var res = influx_ruuvi.doQuery("select temperature as power from ruuvi_measurements where mac='EF:93:E1:2B:3E:DB' order by time desc limit 1")
+        fpInsideTemperature.text = res[0].data.toFixed(1)
     }
 
     Grid {
@@ -81,7 +98,7 @@ Window {
             color: "#ffffff"
 
             Text {
-                id: fp_power
+                id: fpPower
                 text: influx_electricity.connected
 //                font.pointSize: 40
 
@@ -102,7 +119,7 @@ Window {
             color: "#ffffff"
 
             Text {
-                id: fp_water
+                id: fpWater
                 text: influx_electricity.connected
 //                font.pointSize: 40
 
@@ -117,17 +134,45 @@ Window {
         }
 
         Rectangle {
-            id: rectangle2
+            id: outsideTemperature
             width: 200
             height: 240
             color: "#ffffff"
+
+            Text {
+                id: fpOutsideTemperature
+                text: influx_electricity.connected
+//                font.pointSize: 40
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        temperatureGraphView.opacity = 1.0
+                        frontPage.visible = false
+                    }
+                }
+            }
         }
 
         Rectangle {
-            id: rectangle3
+            id: insideTemperature
             width: 200
             height: 240
             color: "#ffffff"
+
+            Text {
+                id: fpInsideTemperature
+                text: influx_electricity.connected
+//                font.pointSize: 40
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        temperatureGraphView.opacity = 1.0
+                        frontPage.visible = false
+                    }
+                }
+            }
         }
 
         Rectangle {

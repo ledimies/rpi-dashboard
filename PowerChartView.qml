@@ -13,8 +13,22 @@ Item {
         function refresh(sinceDays) {
             lineSeries.clear()
             barSeries.clear()
+            barAxis.categories = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"]
 
-            var queryText = "select mean(power) as power from consumption where time < now()-" + sinceDays*24 + "h and time >= now()-" + (sinceDays+1)*24 + "h group by time(2m) order by time asc"
+            var endOfDay = new Date()
+            endOfDay.setHours(0,0,0,0)
+            endOfDay.setDate(endOfDay.getDate() + 1)
+
+            var startTime = new Date(endOfDay)
+            var endTime = new Date(endOfDay)
+            startTime.setDate(endOfDay.getDate() - (sinceDays+1))
+            endTime.setDate(endOfDay.getDate() - (sinceDays))
+
+            timeAxis.max = endTime
+            timeAxis.min = startTime
+            timeAxis.tickCount = 25
+
+            var queryText = "select mean(power) as power from consumption where time >= '" + endOfDay.toJSON() + "' - " + (sinceDays+1) + "d and time < '" + endOfDay.toJSON() + "' - " + sinceDays + "d group by time(2m) order by time asc"
             var queryResult = influx_electricity.doQuery(queryText)
             var maxValue = Math.max(...queryResult.map(point => point.data))
 
@@ -22,16 +36,12 @@ Item {
                                     lineSeries.append(point.timestamp.getTime(), point.data)
                                 });
 
-            timeAxis.max = queryResult[queryResult.length - 1].timestamp
-            timeAxis.min = queryResult[0].timestamp
-            timeAxis.tickCount = 24
             yAxis.max = (maxValue + 500) - (maxValue + 500) % 500
 
-            queryText = "select count(power) as power from consumption where time < now()-" + sinceDays*24 + "h and time >= now()-" + (sinceDays+1)*24 + "h group by time(1h) order by time asc"
+            queryText = "select count(power) as power from consumption where time >= '" + endOfDay.toJSON() + "' - " + (sinceDays+1) + "d and time < '" + endOfDay.toJSON() + "' - " + sinceDays + "d group by time(1h) order by time asc"
             queryResult = influx_electricity.doQuery(queryText)
 
             barSeries.append("kWhPerHour", queryResult.map(point => point.data))
-            barAxis.categories = queryResult.map(point => point.data)
 
             var titleDate = new Date()
             titleDate.setDate(titleDate.getDate() - sinceDays)

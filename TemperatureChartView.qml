@@ -20,14 +20,28 @@ Item {
     }
 
     function refresh(sinceDays) {
-        var maxValue = 0;
+        var maxValue = 0
         var minValue = 0
+
+        var endOfDay = new Date()
+        endOfDay.setHours(0,0,0,0)
+        endOfDay.setDate(endOfDay.getDate() + 1)
+
+        var startTime = new Date(endOfDay)
+        var endTime = new Date(endOfDay)
+        startTime.setDate(endOfDay.getDate() - (sinceDays+1))
+        endTime.setDate(endOfDay.getDate() - (sinceDays))
+
+        timeAxis.max = endTime
+        timeAxis.min = startTime
+        timeAxis.tickCount = 25
+
         for (var i = 0; i < series.length; i++) {
             var updatedSeries = chartView.series(i)
             updatedSeries.clear()
             var mac = series[i].mac
 
-            var queryText = "select mean(temperature) as power from ruuvi_measurements where mac='" + mac + "' and time < now()-" + sinceDays*24 + "h and time >= now()-" + (sinceDays+1)*24 + "h group by time(10m) order by time asc"
+            var queryText = "select mean(temperature) as power from ruuvi_measurements where mac='" + mac + "' and time >= '" + endOfDay.toJSON() + "' - " + (sinceDays+1) + "d and time < '" + endOfDay.toJSON() + "' - " + sinceDays + "d group by time(10m) order by time asc"
             var queryResult = influx_ruuvi.doQuery(queryText)
             maxValue = Math.max(...queryResult.map(point => point.data), maxValue)
             minValue = Math.min(...queryResult.map(point => point.data), minValue)
@@ -35,15 +49,6 @@ Item {
             queryResult.forEach((point) => {
                                     updatedSeries.append(point.timestamp.getTime(), point.data)
                                 });
-
-            // Set time axis based on first query
-            if (i === 0) {
-                if (queryResult.length > 0) {
-                    timeAxis.max = queryResult[queryResult.length - 1].timestamp
-                    timeAxis.min = queryResult[0].timestamp
-                }
-                timeAxis.tickCount = 24
-            }
         }
         yAxis.max = (maxValue + 5) - (maxValue + 5) % 5
         yAxis.min = minValue

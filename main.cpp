@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     QApplication::setApplicationName("rpi-display");
     QApplication::setApplicationVersion("1.0");
-    QApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
+    //QApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
 
     QCommandLineParser parser;
     parser.setApplicationDescription("Home dashboard application");

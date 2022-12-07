@@ -74,7 +74,8 @@ Window {
     function refreshWater() {
         // Liters, last 10 minutes
         var res = influx_water.doQuery("select sum(power) as power from (select difference(first(amount_dl))/10 as power from consumption where time < now() and time >= now()-10m group by time(1m) order by time asc)")
-        fpWater.text = "Vesi: " + res[0].data.toFixed(1) + " L/10min"
+        var foo = res[0] ? res[0].data.toFixed(1) : "--"
+        fpWater.text = "Vesi: " + foo + " L/10min"
     }
 
     function refreshOutsideTemperature() {
@@ -197,6 +198,7 @@ Window {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
+                            waterGraphView.sinceDays = 0
                             waterGraphView.opacity = 1.0
                             frontPage.visible = false
                         }

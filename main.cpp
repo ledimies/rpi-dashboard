@@ -4,6 +4,7 @@
 #include <QQmlContext>
 #include <iostream>
 #include <QCursor>
+#include <influxdbdata.h>
 
 int main(int argc, char *argv[])
 {

@@ -2,6 +2,7 @@
 #define INFLUXDBCONNECTION_H
 
 #include <QObject>
+#include <QtQml/qqml.h>
 #include <influxdbdata.h>
 #include <InfluxDB.h>
 
@@ -13,17 +14,16 @@ class InfluxDBConnection : public QObject
 public:
     explicit InfluxDBConnection(QObject *parent = nullptr);
 
-    QQmlListProperty<InfluxDBData> data();
     bool connected() const;
 
     Q_INVOKABLE void connect(const QString &name);
-    Q_INVOKABLE QList<InfluxDBData *> doQuery(const QString query);
+    Q_INVOKABLE QVariantList doQuery(const QString query);
 
 signals:
     void connectedChanged();
 
 private:
-    QList<InfluxDBData *> m_data;
+    QVariantList m_data;
     bool m_connected = false;
     std::unique_ptr<influxdb::InfluxDB> m_influxDBConnection;
 };

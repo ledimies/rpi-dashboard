@@ -1,7 +1,6 @@
 #include "influxdbdata.h"
 
-InfluxDBData::InfluxDBData(QObject *parent)
-    : QObject{parent}
+InfluxDBData::InfluxDBData(const QDateTime &timestamp, const double &data) : m_timestamp(timestamp), m_data(data)
 {
 
 }

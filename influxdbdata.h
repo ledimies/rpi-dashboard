@@ -30,6 +30,6 @@ private:
     QDateTime m_timestamp;
 };
 
-//Q_DECLARE_METATYPE(InfluxDBData)
+Q_DECLARE_METATYPE(InfluxDBData)
 
 #endif // INFLUXDBDATA_H

@@ -93,6 +93,31 @@ Window {
         dateAndTime.text = date.toLocaleString("fi_FI", Locale.LongFormat)
     }
 
+    Rectangle {
+        id: rotatingRectangle
+        x: 10
+        y: 10
+        width: 20
+        height: 20
+        color: "#ADD8E6" // Light blue color
+        rotation: 0 // Initial rotation
+        smooth: true // Smooth rotation animation
+
+        // Rotate the rectangle by 360 degrees over 1 second
+        RotationAnimation {
+            id: rotationAnimation
+            target: rotatingRectangle
+            property: "rotation"
+            to: 360
+            duration: 5000
+            loops: Animation.Infinite // Loop the animation indefinitely
+        }
+
+        Component.onCompleted: {
+            rotationAnimation.start() // Start the rotation animation when the rectangle is created
+        }
+    }
+
 
     Item {
         id: frontPage

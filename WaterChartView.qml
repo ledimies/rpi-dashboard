@@ -6,9 +6,44 @@ Item {
     opacity: 0.0
     id: root
     property int sinceDays: 0
+    property InfluxDBQuery waterLineChartQuery: null
+    property InfluxDBQuery waterBarChartQuery: null
 
     ConsumptionGraphView {
         id: consumptionGraphView
+
+        Component.onCompleted: {
+            waterLineChartQuery = influx_water.getNewQuery()
+            waterLineChartQuery.onQueryFinished.connect(onWaterLineChartQueryFinished)
+            waterBarChartQuery = influx_water.getNewQuery()
+            waterBarChartQuery.onQueryFinished.connect(onWaterBarChartQueryFinished)
+        }
+
+        function onWaterLineChartQueryFinished(queryResult) {
+            if (queryResult[0]) {
+                var firstValue = queryResult[0].data
+                var maxValue = queryResult[queryResult.length - 1].data - firstValue
+                maxValue = maxValue / 10
+
+                // Sometimes water meter maximum value can go haywire because of bad data,
+                // make sure the maximum value makes some sense
+                if (maxValue > 2000 || maxValue < 0) {
+                    maxValue = 600
+                }
+
+                queryResult.forEach((point) => {
+                                lineSeries.append(point.timestamp.getTime(), (point.data-firstValue)/10)
+                            });
+
+                yAxis.max = (maxValue + 50) - (maxValue + 50) % 50
+            }
+        }
+
+        function onWaterBarChartQueryFinished(queryResult) {
+            if (queryResult[0]) {
+                barSeries.append("litersPerHour", queryResult.map(point => point.data))
+            }
+        }
 
         function refresh(sinceDays) {
             lineSeries.clear()
@@ -30,45 +65,17 @@ Item {
 
             // Cumulative consumption in the last 24 hours
             var queryText = "select last(amount_dl) as power from consumption where time >= '" + endOfDay.toJSON() + "' - " + (sinceDays+1) + "d and time < '" + endOfDay.toJSON() + "' - " + sinceDays + "d group by time(2m) order by time asc"
-            var queryResult = influx_water.doQuery(queryText)
+            waterLineChartQuery.setQuery(queryText)
+            waterLineChartQuery.queueQuery();
 
-            if (queryResult[0]) {
-                refreshLineGraph(queryResult)
-                refreshBarGraph(endOfDay)
-            }
+            queryText = "select difference(last(amount_dl))/10 as power from consumption where time >= '" + endOfDay.toJSON() + "' - " + (sinceDays+1) + "d and time < '" + endOfDay.toJSON() + "' - " + sinceDays + "d + 1s group by time(1h) order by time asc"
+            waterBarChartQuery.setQuery(queryText)
+            waterBarChartQuery.queueQuery()
 
             var titleDate = new Date()
             titleDate.setDate(titleDate.getDate() - sinceDays)
             chartView.title = "Veden kulutus " + titleDate.toLocaleDateString("fi_FI")
             chartView.focus = true
-        }
-
-        function refreshLineGraph(queryResult) {
-            var firstValue = queryResult[0].data
-            var maxValue = queryResult[queryResult.length - 1].data - firstValue
-            maxValue = maxValue / 10
-
-            // Sometimes water meter maximum value can go haywire because of bad data,
-            // make sure the maximum value makes some sense
-            if (maxValue > 2000 || maxValue < 0) {
-                maxValue = 600
-            }
-
-            queryResult.forEach((point) => {
-                            lineSeries.append(point.timestamp.getTime(), (point.data-firstValue)/10)
-                        });
-
-            yAxis.max = (maxValue + 50) - (maxValue + 50) % 50
-        }
-
-        function refreshBarGraph(endOfDay) {
-            // Aggregated consumption per hour
-            var queryText = "select difference(last(amount_dl))/10 as power from consumption where time >= '" + endOfDay.toJSON() + "' - " + (sinceDays+1) + "d and time < '" + endOfDay.toJSON() + "' - " + sinceDays + "d + 1s group by time(1h) order by time asc"
-            var queryResult = influx_water.doQuery(queryText)
-
-            if (queryResult[0]) {
-                barSeries.append("litersPerHour", queryResult.map(point => point.data))
-            }
         }
     }
 }

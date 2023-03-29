@@ -10,6 +10,16 @@ Window {
     color: "black"
     title: qsTr("Home Dashboard")
 
+    property int electricityConsumption: 500
+    property real waterConsumption: 10
+    property real outsideTemperature: -15
+    property real insideTemperature: 21
+
+    property InfluxDBQuery electricityQuery: null
+    property InfluxDBQuery waterQuery: null
+    property InfluxDBQuery outsideTemperatureQuery: null
+    property InfluxDBQuery insideTemperatureQuery: null
+
     InfluxDBConnection {
         id: influx_electricity
     }
@@ -45,6 +55,31 @@ Window {
         influx_electricity.connect(powerURL)
         influx_water.connect(waterURL)
         influx_ruuvi.connect(ruuviURL)
+
+        electricityQuery = influx_electricity.getNewQuery()
+        electricityQuery.setQuery("select power from consumption order by time desc limit 1")
+        electricityQuery.onQueryFinished.connect(function(res) {
+            electricityConsumption = res[0].data.toFixed(0)
+        });
+
+        waterQuery = influx_water.getNewQuery()
+        waterQuery.setQuery("select sum(power) as power from (select difference(first(amount_dl))/10 as power from consumption where time < now() and time >= now()-10m group by time(1m) order by time asc)")
+        waterQuery.onQueryFinished.connect(function(res) {
+            waterConsumption = res[0] ? res[0].data.toFixed(1) : "--"
+        });
+
+        outsideTemperatureQuery = influx_ruuvi.getNewQuery()
+        outsideTemperatureQuery.setQuery("select temperature as power from ruuvi_measurements where mac='CA:39:20:9F:92:AC' order by time desc limit 1")
+        outsideTemperatureQuery.onQueryFinished.connect(function(res) {
+            outsideTemperature = res[0].data.toFixed(1)
+        });
+
+
+        insideTemperatureQuery = influx_ruuvi.getNewQuery()
+        insideTemperatureQuery.setQuery("select temperature as power from ruuvi_measurements where mac='EF:93:E1:2B:3E:DB' order by time desc limit 1")
+        insideTemperatureQuery.onQueryFinished.connect(function(res) {
+            insideTemperature = res[0].data.toFixed(1)
+        });
     }
 
     Timer {
@@ -59,33 +94,17 @@ Window {
     }
 
     function refreshAll() {
-        refreshElectricity()
-        refreshWater()
-        refreshOutsideTemperature()
-        refreshInsideTemperature()
+        refreshQuery(electricityQuery)
+        refreshQuery(waterQuery)
+        refreshQuery(outsideTemperatureQuery)
+        refreshQuery(insideTemperatureQuery)
         refreshDateAndTime()
     }
 
-    function refreshElectricity() {
-        var res = influx_electricity.doQuery("select power from consumption order by time desc limit 1")
-        fpPower.text = "Sähkö: " + res[0].data.toFixed(0) + "W"
-    }
-
-    function refreshWater() {
-        // Liters, last 10 minutes
-        var res = influx_water.doQuery("select sum(power) as power from (select difference(first(amount_dl))/10 as power from consumption where time < now() and time >= now()-10m group by time(1m) order by time asc)")
-        var foo = res[0] ? res[0].data.toFixed(1) : "--"
-        fpWater.text = "Vesi: " + foo + " L/10min"
-    }
-
-    function refreshOutsideTemperature() {
-        var res = influx_ruuvi.doQuery("select temperature as power from ruuvi_measurements where mac='CA:39:20:9F:92:AC' order by time desc limit 1")
-        fpOutsideTemperature.text = "Ulkolämpötila: " + res[0].data.toFixed(1) + "℃"
-    }
-
-    function refreshInsideTemperature() {
-        var res = influx_ruuvi.doQuery("select temperature as power from ruuvi_measurements where mac='EF:93:E1:2B:3E:DB' order by time desc limit 1")
-        fpInsideTemperature.text = "Sisälämpötila: " + res[0].data.toFixed(1) + "℃"
+    function refreshQuery(query) {
+        if (query) {
+            query.queueQuery()
+        }
     }
 
     function refreshDateAndTime() {
@@ -103,7 +122,6 @@ Window {
         rotation: 0 // Initial rotation
         smooth: true // Smooth rotation animation
 
-        // Rotate the rectangle by 360 degrees over 1 second
         RotationAnimation {
             id: rotationAnimation
             target: rotatingRectangle
@@ -168,7 +186,7 @@ Window {
                     Text {
                         id: fpPower
                         color: "#ffffff"
-                        text: "Sähkö: 650W"
+                        text: "Sähkö: " + electricityConsumption
                         anchors.verticalCenter: parent.verticalCenter
                         font.pixelSize: 24
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -184,14 +202,14 @@ Window {
                 }
 
                 Item {
-                    id: insideTemperature
+                    id: insideTemp
                     width: 325
                     height: 150
 
                     Text {
                         id: fpInsideTemperature
                         color: "#ffffff"
-                        text: "Sisälämpötila 25℃"
+                        text: "Sisälämpötila " + insideTemperature + "℃"
                         anchors.verticalCenter: parent.verticalCenter
                         font.pixelSize: 24
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -214,7 +232,7 @@ Window {
                     Text {
                         id: fpWater
                         color: "#ffffff"
-                        text: "Vesi: 2L / 10min"
+                        text: "Vesi: " + waterConsumption + "L / 10min"
                         anchors.verticalCenter: parent.verticalCenter
                         font.pixelSize: 24
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -231,14 +249,14 @@ Window {
                 }
 
                 Item {
-                    id: outsideTemperature
+                    id: outsideTemp
                     width: 325
                     height: 150
 
                     Text {
                         id: fpOutsideTemperature
                         color: "#ffffff"
-                        text: "Ulkolämpötila 25℃"
+                        text: "Ulkolämpötila " + outsideTemperature + "℃"
                         anchors.verticalCenter: parent.verticalCenter
                         font.pixelSize: 24
                         anchors.horizontalCenter: parent.horizontalCenter

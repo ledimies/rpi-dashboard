@@ -8,20 +8,59 @@ Item {
     required property list<TemperatureSeries> series
     property int sinceDays: 0
     opacity: 0.0
+//    property var queryArray: []
+    property list<InfluxDBQuery> queries
+    property int minValue: 0
+    property int maxValue: 0
+    property double maxSeriesValue: 0
+    property double minSeriesValue: 0
 
     function createInitialSeries(series) {
         chartView.createSeries(ChartView.SeriesTypeLine, series.name, timeAxis, yAxis);
     }
 
+    function createSeriesQuery(index) {
+        var seriesQuery = influx_ruuvi.getNewQuery()
+
+        var onQueryFinished = function(queryResult) {
+            onSeriesQueryFinished(queryResult, index, series.length)
+        }
+
+        seriesQuery.onQueryFinished.connect(onQueryFinished);
+        queries.push(seriesQuery)
+    }
+
     Component.onCompleted: {
         for (var i = 0; i < series.length; i++) {
             createInitialSeries(series[i])
+            createSeriesQuery(i)
+        }
+    }
+
+    function onSeriesQueryFinished(queryResult, seriesNum, seriesLength) {
+        var updatedSeries = chartView.series(seriesNum)
+        queryResult.forEach((point) => {
+                                updatedSeries.append(point.timestamp.getTime(), point.data)
+                            });
+
+        maxSeriesValue = Math.max(...queryResult.map(point => point.data), maxSeriesValue)
+        minSeriesValue = Math.min(...queryResult.map(point => point.data), minSeriesValue)
+        console.log("Series num: " + seriesNum + " MAX: " + maxSeriesValue + " MIN: " + minSeriesValue)
+//        maxValue = maxValue + 5
+//        minValue = minValue - 5
+//        maxValue = (maxValue + 5) - (maxValue + 5) % 5
+//        minValue = (minValue - 5) + (minValue - 5) % 5
+        //        yAxis.min = minValue
+
+        if (seriesNum >= series.length - 1) {
+            minValue = minSeriesValue - 2
+            maxValue = maxSeriesValue + 2
         }
     }
 
     function refresh(sinceDays) {
-        var maxValue = 0
-        var minValue = 0
+        maxSeriesValue = 0
+        minSeriesValue = 0
 
         var endOfDay = new Date()
         endOfDay.setHours(0,0,0,0)
@@ -42,22 +81,14 @@ Item {
             var mac = series[i].mac
 
             var queryText = "select mean(temperature) as power from ruuvi_measurements where mac='" + mac + "' and time >= '" + endOfDay.toJSON() + "' - " + (sinceDays+1) + "d and time < '" + endOfDay.toJSON() + "' - " + sinceDays + "d group by time(10m) order by time asc"
-            var queryResult = influx_ruuvi.doQuery(queryText)
-            maxValue = Math.max(...queryResult.map(point => point.data), maxValue)
-            minValue = Math.min(...queryResult.map(point => point.data), minValue)
-
-            queryResult.forEach((point) => {
-                                    updatedSeries.append(point.timestamp.getTime(), point.data)
-                                });
+            queries[i].setQuery(queryText)
+            queries[i].queueQuery()
         }
-        yAxis.max = (maxValue + 5) - (maxValue + 5) % 5
-        yAxis.min = minValue
 
         var titleDate = new Date()
         titleDate.setDate(titleDate.getDate() - sinceDays)
         chartView.title = "Lämpötila " + titleDate.toLocaleDateString("fi_FI")
         chartView.focus = true
-        console.log("series count: " + chartView.series(0).count);
     }
 
     Rectangle {
@@ -84,8 +115,8 @@ Item {
 
             ValuesAxis {
                 id: yAxis
-                min: 0
-                max: 10000
+                min: minValue
+                max: maxValue
                 tickCount: 11
                 minorTickCount: 1
 

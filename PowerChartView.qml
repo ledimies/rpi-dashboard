@@ -6,9 +6,32 @@ Item {
     opacity: 0.0
     id: root
     property int sinceDays: 0
+    property InfluxDBQuery powerLineChartQuery: null
+    property InfluxDBQuery powerBarChartQuery: null
 
     ConsumptionGraphView {
         id: consumptionGraphView
+
+        Component.onCompleted: {
+            powerLineChartQuery = influx_electricity.getNewQuery()
+            powerLineChartQuery.onQueryFinished.connect(onPowerLineChartQueryFinished)
+            powerBarChartQuery = influx_electricity.getNewQuery()
+            powerBarChartQuery.onQueryFinished.connect(onPowerBarChartQueryFinished)
+        }
+
+        function onPowerLineChartQueryFinished(queryResult) {
+            var maxValue = Math.max(...queryResult.map(point => point.data))
+
+            queryResult.forEach((point) => {
+                                    lineSeries.append(point.timestamp.getTime(), point.data)
+                                });
+
+            yAxis.max = (maxValue + 500) - (maxValue + 500) % 500
+        }
+
+        function onPowerBarChartQueryFinished(queryResult) {
+            barSeries.append("kWhPerHour", queryResult.map(point => point.data))
+        }
 
         function refresh(sinceDays) {
             lineSeries.clear()
@@ -29,19 +52,12 @@ Item {
             timeAxis.tickCount = 25
 
             var queryText = "select mean(power) as power from consumption where time >= '" + endOfDay.toJSON() + "' - " + (sinceDays+1) + "d and time < '" + endOfDay.toJSON() + "' - " + sinceDays + "d group by time(2m) order by time asc"
-            var queryResult = influx_electricity.doQuery(queryText)
-            var maxValue = Math.max(...queryResult.map(point => point.data))
-
-            queryResult.forEach((point) => {
-                                    lineSeries.append(point.timestamp.getTime(), point.data)
-                                });
-
-            yAxis.max = (maxValue + 500) - (maxValue + 500) % 500
+            powerLineChartQuery.setQuery(queryText)
+            powerLineChartQuery.queueQuery()
 
             queryText = "select count(power) as power from consumption where time >= '" + endOfDay.toJSON() + "' - " + (sinceDays+1) + "d and time < '" + endOfDay.toJSON() + "' - " + sinceDays + "d group by time(1h) order by time asc"
-            queryResult = influx_electricity.doQuery(queryText)
-
-            barSeries.append("kWhPerHour", queryResult.map(point => point.data))
+            powerBarChartQuery.setQuery(queryText)
+            powerBarChartQuery.queueQuery()
 
             var titleDate = new Date()
             titleDate.setDate(titleDate.getDate() - sinceDays)

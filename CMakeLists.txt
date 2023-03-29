@@ -15,13 +15,15 @@ qt_add_executable(apprpi-display
     influxdbdata.cpp
     influxdbconnection.h
     influxdbconnection.cpp
+    influxdbquery.h
+    influxdbquery.cpp
 )
 
 qt_add_qml_module(apprpi-display
     URI rpidisplay
     VERSION 1.0
     QML_FILES main.qml PowerChartView.qml WaterChartView.qml ConsumptionGraphView.qml TemperatureChartView.qml TemperatureSeries.qml
-    SOURCES     influxdbdata.h influxdbdata.cpp influxdbconnection.h influxdbconnection.cpp
+    SOURCES     influxdbdata.h influxdbdata.cpp influxdbconnection.h influxdbconnection.cpp influxdbquery.h influxdbquery.cpp
     RESOURCES img/background.jpg
 )
 

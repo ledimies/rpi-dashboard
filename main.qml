@@ -186,7 +186,7 @@ Window {
                     Text {
                         id: fpPower
                         color: "#ffffff"
-                        text: "Sähkö: " + electricityConsumption
+                        text: "Sähkö: " + electricityConsumption + "W"
                         anchors.verticalCenter: parent.verticalCenter
                         font.pixelSize: 24
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -195,6 +195,7 @@ Window {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
+                            powerGraphView.sinceDays = 0
                             powerGraphView.opacity = 1.0
                             frontPage.visible = false
                         }
@@ -218,6 +219,7 @@ Window {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
+                            temperatureGraphView.sinceDays = 0
                             temperatureGraphView.opacity = 1.0
                             frontPage.visible = false
                         }
@@ -265,6 +267,7 @@ Window {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
+                            temperatureGraphView.sinceDays = 0
                             temperatureGraphView.opacity = 1.0
                             frontPage.visible = false
                         }

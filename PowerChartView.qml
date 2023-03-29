@@ -36,11 +36,11 @@ Item {
         }
 
         function onPowerBarChartQueryFinished(queryResult) {
+            barSeries.clear()
             barSeries.append("kWhPerHour", queryResult.map(point => point.data))
         }
 
         function refresh(sinceDays) {
-            barSeries.clear()
             barAxis.categories = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"]
 
             var endOfDay = new Date()

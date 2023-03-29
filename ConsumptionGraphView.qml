@@ -31,12 +31,14 @@ Rectangle {
         legend.visible: false
 
         BarSeries {
+            useOpenGL: true
             id: barSeries
             axisX: barAxis
             axisY: yAxis
         }
 
         LineSeries {
+            useOpenGL: true
             id: lineSeries
             axisX: timeAxis
             axisY: yAxis

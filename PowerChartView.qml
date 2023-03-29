@@ -1,5 +1,7 @@
 import QtQuick
 import rpidisplay
+import rpidisplay.serieshelper
+import QtCharts
 
 Item {
     required property InfluxDBConnection influx_electricity
@@ -8,6 +10,16 @@ Item {
     property int sinceDays: 0
     property InfluxDBQuery powerLineChartQuery: null
     property InfluxDBQuery powerBarChartQuery: null
+
+    WorkerScript {
+        id: lineGraphWorker
+        source: "power_line_graph_worker.mjs"
+
+        onMessage: function(messageObject) {
+            SeriesHelper.replaceSeriesData(consumptionGraphView.lineSeries, messageObject.points)
+            consumptionGraphView.yAxis.max = messageObject.maxValue;
+        }
+    }
 
     ConsumptionGraphView {
         id: consumptionGraphView
@@ -20,13 +32,7 @@ Item {
         }
 
         function onPowerLineChartQueryFinished(queryResult) {
-            var maxValue = Math.max(...queryResult.map(point => point.data))
-
-            queryResult.forEach((point) => {
-                                    lineSeries.append(point.timestamp.getTime(), point.data)
-                                });
-
-            yAxis.max = (maxValue + 500) - (maxValue + 500) % 500
+            lineGraphWorker.sendMessage(queryResult);
         }
 
         function onPowerBarChartQueryFinished(queryResult) {
@@ -34,7 +40,6 @@ Item {
         }
 
         function refresh(sinceDays) {
-            lineSeries.clear()
             barSeries.clear()
             barAxis.categories = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"]
 

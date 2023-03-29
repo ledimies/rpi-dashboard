@@ -1,5 +1,6 @@
 import QtQuick
 import rpidisplay
+import rpidisplay.serieshelper
 
 Item {
     required property InfluxDBConnection influx_water
@@ -8,6 +9,16 @@ Item {
     property int sinceDays: 0
     property InfluxDBQuery waterLineChartQuery: null
     property InfluxDBQuery waterBarChartQuery: null
+
+    WorkerScript {
+        id: lineGraphWorker
+        source: "water_line_graph_worker.mjs"
+
+        onMessage: function(messageObject) {
+            SeriesHelper.replaceSeriesData(consumptionGraphView.lineSeries, messageObject.points)
+            consumptionGraphView.yAxis.max = messageObject.maxValue;
+        }
+    }
 
     ConsumptionGraphView {
         id: consumptionGraphView
@@ -20,23 +31,7 @@ Item {
         }
 
         function onWaterLineChartQueryFinished(queryResult) {
-            if (queryResult[0]) {
-                var firstValue = queryResult[0].data
-                var maxValue = queryResult[queryResult.length - 1].data - firstValue
-                maxValue = maxValue / 10
-
-                // Sometimes water meter maximum value can go haywire because of bad data,
-                // make sure the maximum value makes some sense
-                if (maxValue > 2000 || maxValue < 0) {
-                    maxValue = 600
-                }
-
-                queryResult.forEach((point) => {
-                                lineSeries.append(point.timestamp.getTime(), (point.data-firstValue)/10)
-                            });
-
-                yAxis.max = (maxValue + 50) - (maxValue + 50) % 50
-            }
+            lineGraphWorker.sendMessage(queryResult);
         }
 
         function onWaterBarChartQueryFinished(queryResult) {
@@ -46,7 +41,6 @@ Item {
         }
 
         function refresh(sinceDays) {
-            lineSeries.clear()
             barSeries.clear()
             barAxis.categories = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"]
 

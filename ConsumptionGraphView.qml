@@ -40,7 +40,6 @@ Rectangle {
             id: lineSeries
             axisX: timeAxis
             axisY: yAxis
-
         }
 
         ValuesAxis {

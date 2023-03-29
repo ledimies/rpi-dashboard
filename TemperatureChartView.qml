@@ -1,6 +1,7 @@
 import QtQuick
 import rpidisplay
 import QtCharts
+import rpidisplay.serieshelper
 
 Item {
     id: root
@@ -8,15 +9,34 @@ Item {
     required property list<TemperatureSeries> series
     property int sinceDays: 0
     opacity: 0.0
-//    property var queryArray: []
     property list<InfluxDBQuery> queries
+    property list<LineSeries> lineSeries
     property int minValue: 0
     property int maxValue: 0
     property double maxSeriesValue: 0
     property double minSeriesValue: 0
 
+    WorkerScript {
+        id: lineGraphWorker
+        source: "temperature_line_graph_worker.mjs"
+
+        onMessage: function(messageObject) {
+            SeriesHelper.replaceSeriesData(lineSeries[messageObject.seriesNum], messageObject.points)
+
+            maxSeriesValue = Math.max(messageObject.maxValue, maxSeriesValue)
+            minSeriesValue = Math.min(messageObject.minValue, minSeriesValue)
+
+            if (messageObject.seriesNum >= messageObject.seriesLength - 1) {
+                minValue = minSeriesValue - 2
+                maxValue = maxSeriesValue + 2
+            }
+
+        }
+    }
+
     function createInitialSeries(series) {
-        chartView.createSeries(ChartView.SeriesTypeLine, series.name, timeAxis, yAxis);
+        var lineSerie = chartView.createSeries(ChartView.SeriesTypeLine, series.name, timeAxis, yAxis);
+        lineSeries.push(lineSerie);
     }
 
     function createSeriesQuery(index) {
@@ -39,23 +59,8 @@ Item {
 
     function onSeriesQueryFinished(queryResult, seriesNum, seriesLength) {
         var updatedSeries = chartView.series(seriesNum)
-        queryResult.forEach((point) => {
-                                updatedSeries.append(point.timestamp.getTime(), point.data)
-                            });
-
-        maxSeriesValue = Math.max(...queryResult.map(point => point.data), maxSeriesValue)
-        minSeriesValue = Math.min(...queryResult.map(point => point.data), minSeriesValue)
-        console.log("Series num: " + seriesNum + " MAX: " + maxSeriesValue + " MIN: " + minSeriesValue)
-//        maxValue = maxValue + 5
-//        minValue = minValue - 5
-//        maxValue = (maxValue + 5) - (maxValue + 5) % 5
-//        minValue = (minValue - 5) + (minValue - 5) % 5
-        //        yAxis.min = minValue
-
-        if (seriesNum >= series.length - 1) {
-            minValue = minSeriesValue - 2
-            maxValue = maxSeriesValue + 2
-        }
+        var message = { queryResult: queryResult, seriesNum: seriesNum, seriesLength: seriesLength };
+        lineGraphWorker.sendMessage(message);
     }
 
     function refresh(sinceDays) {

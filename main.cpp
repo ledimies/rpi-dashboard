@@ -5,6 +5,7 @@
 #include <iostream>
 #include <QCursor>
 #include <influxdbdata.h>
+#include <serieshelper.h>
 
 int main(int argc, char *argv[])
 {
@@ -38,6 +39,13 @@ int main(int argc, char *argv[])
     QString waterURL = parser.value(waterInfluxConnectionURL);
     QString powerURL = parser.value(powerInfluxConnectionURL);
 
+    qmlRegisterSingletonType<SeriesHelper>("rpidisplay.serieshelper", 1, 0, "SeriesHelper",
+        [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject * {
+            Q_UNUSED(engine)
+            Q_UNUSED(scriptEngine)
+            return SeriesHelper::instance();
+        }
+    );
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("ruuviURL", ruuviURL);
